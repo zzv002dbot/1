@@ -1,0 +1,33 @@
+name: Custom File Downloader
+
+on:
+  workflow_dispatch:
+    inputs:
+      file_url:
+        description: '请输入要下载的文件 URL'
+        required: true
+        type: string
+      file_name:
+        description: '保存的文件名 (可选, 默认自动取)'
+        required: false
+        default: ''
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载文件
+        run: |
+          URL="${{ github.event.inputs.file_url }}"
+          NAME="${{ github.event.inputs.file_name }}"
+          if [ -z "$NAME" ]; then
+            NAME=$(basename "$URL")
+          fi
+          echo "Downloading $URL -> $NAME"
+          curl -L "$URL" -o "$NAME"
+
+      - name: 上传 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: downloaded-file
+          path: ${{ github.event.inputs.file_name || github.event.inputs.file_url }}
