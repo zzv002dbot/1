@@ -1,4 +1,4 @@
-name: Custom File Downloader
+name: Download to Release
 
 on:
   workflow_dispatch:
@@ -11,10 +11,21 @@ on:
         description: '保存的文件名 (可选, 默认自动取)'
         required: false
         default: ''
+      tag_name:
+        description: 'Release 标签 (如 v1.0.0)'
+        required: true
+        type: string
+      release_name:
+        description: 'Release 名称 (可选, 默认与 tag 相同)'
+        required: false
+        default: ''
 
 jobs:
-  download:
+  download-and-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 需要写入权限才能创建 release
+
     steps:
       - name: 下载文件
         run: |
@@ -25,9 +36,11 @@ jobs:
           fi
           echo "Downloading $URL -> $NAME"
           curl -L "$URL" -o "$NAME"
+          echo "FILE_NAME=$NAME" >> $GITHUB_ENV
 
-      - name: 上传 Artifact
-        uses: actions/upload-artifact@v4
+      - name: 创建或更新 Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: downloaded-file
-          path: ${{ github.event.inputs.file_name || github.event.inputs.file_url }}
+          tag_name: ${{ github.event.inputs.tag_name }}
+          name: ${{ github.event.inputs.release_name || github.event.inputs.tag_name }}
+          files: ${{ env.FILE_NAME }}
